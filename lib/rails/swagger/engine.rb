@@ -37,26 +37,29 @@ module Rails
 				raise "Unsupported swagger version: #{document["swagger"]}. Rails::Swagger supports only version 2.0"
 			end
 
-			document
+			# Build a routing tree
+			router = Router.new
+			document["paths"].each do |url, actions|
+				actions.each do |verb, definition|
+					url = url.gsub /\{(.+)\}/, ':\\1'
+					puts "#{verb.upcase} #{url}".cyan
+					puts definition.inspect
+					router << Route.new(verb.downcase.to_sym, url, nil)
+					#self.send(verb, url)
+				end
+			end
+			puts router.to_s
 
 			# Instantiate a new rails engine
 			engine = Class.new Engine do
 
 				self.routes.draw do
 
-					document["paths"].each do |url, actions|
-						actions.each do |verb, definition|
-							url = url.gsub /\{(.+)\}/ do |m|
-								# convert camelCase to underscores
-								":" + $1.
-									gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
-									gsub(/([a-z\d])([A-Z])/,'\1_\2').
-									downcase
-							end
-							puts "#{verb.upcase} #{url}".cyan
-							#self.send(verb, url)
-						end
-					end
+					# Convert everything to a tree structure
+					# Edges are actions
+					# Paths with subactions are resources
+					# Paths without subactions are namespaces
+					# Render the tree
 
 				end
 

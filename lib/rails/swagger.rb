@@ -1,3 +1,4 @@
+require "rails/swagger/router"
 require "rails/swagger/engine"
 
 module Rails
