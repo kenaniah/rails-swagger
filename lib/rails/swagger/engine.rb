@@ -8,7 +8,10 @@ module Rails
 		end
 
 		# Creates a new engine using the provided swagger file
-		def self.Engine file
+		def self.Engine base_module, file
+
+			# Convert to a constant if a string was passed
+			base_module = Object.const_get base_module unless String === base_module
 
 			# Sanity check
 			ext = File.extname(file)
@@ -42,8 +45,8 @@ module Rails
 			document["paths"].each do |url, actions|
 				actions.each do |verb, definition|
 					url = url.gsub /\{(.+)\}/, ':\\1'
-					puts "#{verb.upcase} #{url}".cyan
-					puts definition.inspect
+					# puts "#{verb.upcase} #{url}".cyan
+					# puts definition.inspect
 					router << Route.new(verb.downcase.to_sym, url, nil)
 					#self.send(verb, url)
 				end
@@ -64,9 +67,10 @@ module Rails
 				end
 
 			end
+			base_module.const_set :SwaggerEngine, engine
 
 			# Return it
-			engine
+			base_module.const_get :SwaggerEngine
 
 		end
 
