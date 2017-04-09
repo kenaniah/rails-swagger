@@ -11,7 +11,7 @@ module Rails
 		def self.Engine base_module, file
 
 			# Convert to a constant if a string was passed
-			base_module = Object.const_get base_module unless String === base_module
+			base_module = Object.const_get base_module if String === base_module
 
 			# Sanity check
 			ext = File.extname(file)
