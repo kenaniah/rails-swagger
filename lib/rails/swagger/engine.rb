@@ -56,6 +56,13 @@ module Rails
 			# Instantiate a new rails engine
 			engine = Class.new Engine do
 
+				@router = router
+				class << self
+					def router
+						@router
+					end
+				end
+
 				self.routes.draw do
 
 					# Convert everything to a tree structure
