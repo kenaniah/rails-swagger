@@ -48,10 +48,10 @@ module Rails
 			end
 
 			# Returns the mode used for collecting routes
-			def collection_mode
+			def path_mode
 				mode = :resource
 				mode = :namespace if @routes.count == 0
-				mode = :action if @subpaths.count == 0
+				mode = :action if @subpaths.count == 0 && @prefix.count > 1
 				mode
 			end
 
@@ -60,9 +60,9 @@ module Rails
 				if /^:/ === @prefix[-2]
 					:member
 				elsif /^:/ === @prefix[-1]
-					:variate
+					:param
 				else
-					:static
+					:collection
 				end
 			end
 
@@ -70,14 +70,41 @@ module Rails
 			def action_for route
 				raise "Argument must be a Route" unless Route === route
 				action = @prefix[-1]
-				action = VARIATE_ROUTES[route[:method]] if self.action_mode == :variate
-				action = RESOURCE_ROUTES[route[:method]] if self.collection_mode == :resource && self.action_mode == :static
+				action = VARIATE_ROUTES[route[:method]] if self.action_mode == :param
+				action = RESOURCE_ROUTES[route[:method]] if self.path_mode == :resource && self.action_mode == :collection
 				action
+			end
+
+			# Draws the routes for this router
+			def draw map
+				path = @prefix.join "/"
+				endpoint = @prefix.last
+				indent = "\t" * @prefix.count
+				case self.path_mode
+				when :resource
+					puts "#{indent}resources :#{endpoint}"
+					map.resources endpoint.to_sym, only: [] do
+						draw_actions! map
+						draw_subroutes! map
+					end
+				when :namespace
+					if path.blank?
+						draw_subroutes! map
+					else
+						puts "#{indent}namespace :#{endpoint}"
+						map.namespace endpoint do
+							draw_subroutes! map
+						end
+					end
+				when :action
+					draw_actions! map
+				end
+
 			end
 
 			def routing_tree
 
-				puts self.path + " - #{self.collection_mode}"
+				puts self.path + " - #{self.path_mode}"
 				@routes.each do |route|
 					puts "\t#{route[:method].to_s.upcase} to ##{self.action_for route} (#{self.action_mode})"
 				end
@@ -100,6 +127,30 @@ module Rails
 
 				output
 
+			end
+
+		protected
+
+			def draw_actions! map
+				indent = "\t" * @prefix.count
+				endpoint = @prefix.last
+				@routes.each do |route|
+
+					params = Hash.new
+					params[:via] = route[:method]
+					params[:on] = self.action_mode unless self.action_mode == :param
+					params[:controller] = :foobar
+					params[:action] = self.action_for route
+
+					puts "#{indent}match #{endpoint}, #{params}.inspect"
+					map.match endpoint, params
+				end
+			end
+
+			def draw_subroutes! map
+				@subpaths.values.each do |subpath|
+					subpath.draw map
+				end
 			end
 
 		end

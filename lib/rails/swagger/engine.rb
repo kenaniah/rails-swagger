@@ -51,7 +51,7 @@ module Rails
 					#self.send(verb, url)
 				end
 			end
-			puts router.to_s
+			puts router.routing_tree
 
 			# Instantiate a new rails engine
 			engine = Class.new Engine do
@@ -63,14 +63,9 @@ module Rails
 					end
 				end
 
+				# Draw the routes
 				self.routes.draw do
-
-					# Convert everything to a tree structure
-					# Edges are actions
-					# Paths with subactions are resources
-					# Paths without subactions are namespaces
-					# Render the tree
-
+					router.draw self
 				end
 
 			end
