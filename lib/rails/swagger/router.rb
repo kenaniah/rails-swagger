@@ -16,6 +16,8 @@ module Rails
 
 		class Router
 
+			attr_accessor :routes
+
 			def initialize prefix = []
 				@prefix = prefix
 				@routes = []
@@ -82,8 +84,17 @@ module Rails
 				indent = "\t" * @prefix.count
 				case self.path_mode
 				when :resource
-					puts "#{indent}resources :#{endpoint}"
-					map.resources endpoint.to_sym, only: [] do
+
+					# Find collection-level resource actions
+					actions = @routes.map{ |route| self.action_for route }.select{ |action| Symbol === action }
+
+					# Find parameter-level resource actions
+					@subpaths.select{ |k, subpath| /^:/ === k}.values.each do |subpath|
+						actions += subpath.routes.map{ |route| subpath.action_for route }.select{ |action| Symbol === action }
+					end
+
+					puts "#{indent}resources :#{endpoint}, only: #{actions.inspect}"
+					map.resources endpoint.to_sym, only: actions do
 						draw_actions! map
 						draw_subroutes! map
 					end
@@ -142,14 +153,12 @@ module Rails
 					params[:controller] = :foobar
 					params[:action] = self.action_for route
 
-					if Symbol === params[:action]
-						params.delete :on
-						puts "#{indent}match #{params}.inspect"
-						map.match params
-					else
-						puts "#{indent}match #{endpoint}, #{params}.inspect"
-						map.match endpoint, params
-					end
+					# These are handled in the resource
+					next if Symbol === params[:action]
+
+					puts "#{indent}match #{endpoint}, #{params}.inspect"
+					map.match endpoint, params
+
 				end
 			end
 
