@@ -142,8 +142,14 @@ module Rails
 					params[:controller] = :foobar
 					params[:action] = self.action_for route
 
-					puts "#{indent}match #{endpoint}, #{params}.inspect"
-					map.match endpoint, params
+					if Symbol === params[:action]
+						params.delete :on
+						puts "#{indent}match #{params}.inspect"
+						map.match params
+					else
+						puts "#{indent}match #{endpoint}, #{params}.inspect"
+						map.match endpoint, params
+					end
 				end
 			end
 
