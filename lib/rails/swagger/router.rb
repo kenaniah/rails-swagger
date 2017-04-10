@@ -93,7 +93,7 @@ module Rails
 						actions += subpath.routes.map{ |route| subpath.action_for route }.select{ |action| Symbol === action }
 					end
 
-					puts "#{indent}resources :#{endpoint}, only: #{actions.inspect}"
+					#puts "#{indent}resources :#{endpoint}, only: #{actions.inspect}"
 					map.resources endpoint.to_sym, only: actions do
 						draw_actions! map
 						draw_subroutes! map
@@ -102,7 +102,7 @@ module Rails
 					if path.blank?
 						draw_subroutes! map
 					else
-						puts "#{indent}namespace :#{endpoint}"
+						#puts "#{indent}namespace :#{endpoint}"
 						map.namespace endpoint do
 							draw_subroutes! map
 						end
@@ -150,13 +150,12 @@ module Rails
 					params = Hash.new
 					params[:via] = route[:method]
 					params[:on] = self.action_mode unless self.action_mode == :param
-					params[:controller] = :foobar
 					params[:action] = self.action_for route
 
 					# These are handled in the resource
 					next if Symbol === params[:action]
 
-					puts "#{indent}match #{endpoint}, #{params}.inspect"
+					#puts "#{indent}match #{endpoint}, #{params}.inspect"
 					map.match endpoint, params
 
 				end

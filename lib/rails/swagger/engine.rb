@@ -45,11 +45,10 @@ module Rails
 			document["paths"].each do |url, actions|
 				actions.each do |verb, definition|
 					url = url.gsub /\{(.+)\}/, ':\\1'
-					puts "#{verb.upcase} #{url}".cyan
+					#puts "#{verb.upcase} #{url}".cyan
 					router << Route.new(verb.downcase.to_sym, url, definition)
 				end
 			end
-			# puts router.routing_tree
 
 			# Instantiate a new rails engine
 			engine = Class.new Engine do
