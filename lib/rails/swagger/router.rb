@@ -27,9 +27,7 @@ module Rails
 			# Adds an individual route to the routing tree
 			def << route
 				raise "Argument must be a Route" unless Route === route
-
-				# Split off the first element of the path
-				base, *subpath = route[:path].split '/'
+				base, *subpath = route[:path].split '/' # Split out first element
 				if subpath.count == 0
 					route[:path] = ""
 					@routes << route
@@ -44,28 +42,46 @@ module Rails
 				@subpaths[path]
 			end
 
-			def type
+			# Returns the routing path
+			def path
+				"/" + @prefix.join("/")
+			end
 
+			# Returns the mode used for collecting routes
+			def collection_mode
 				mode = :resource
 				mode = :namespace if @routes.count == 0
 				mode = :action if @subpaths.count == 0
+				mode
+			end
 
-				path = "/" + @prefix.join("/")
-				puts path + " - #{mode}"
-				@routes.each do |route|
-					context = if /^:/ === @prefix[-2]
-						:member
-					elsif /^:/ === @prefix[-1]
-						:variate
-					else
-						:static
-					end
-					action = @prefix[-1]
-					action = VARIATE_ROUTES[route[:method]] if context == :variate
-					action = RESOURCE_ROUTES[route[:method]] if mode == :resource && context == :static
-					puts "\t#{route[:method].to_s.upcase} to ##{action} (#{context})"
+			# Returns the mode used for actions in this router
+			def action_mode
+				if /^:/ === @prefix[-2]
+					:member
+				elsif /^:/ === @prefix[-1]
+					:variate
+				else
+					:static
 				end
-				@subpaths.each do |k, subpath| subpath.type end
+			end
+
+			# Determines the action for a specific route
+			def action_for route
+				raise "Argument must be a Route" unless Route === route
+				action = @prefix[-1]
+				action = VARIATE_ROUTES[route[:method]] if self.action_mode == :variate
+				action = RESOURCE_ROUTES[route[:method]] if self.collection_mode == :resource && self.action_mode == :static
+				action
+			end
+
+			def routing_tree
+
+				puts self.path + " - #{self.collection_mode}"
+				@routes.each do |route|
+					puts "\t#{route[:method].to_s.upcase} to ##{self.action_for route} (#{self.action_mode})"
+				end
+				@subpaths.each do |k, subpath| subpath.routing_tree end
 
 			end
 
