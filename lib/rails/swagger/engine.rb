@@ -62,7 +62,9 @@ module Rails
 
 				# Draw the routes
 				self.routes.draw do
-					router.draw self
+					scope module: base_module.name.underscore do
+						router.draw self
+					end
 				end
 
 			end
