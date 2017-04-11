@@ -1,57 +1,69 @@
 module Rails
 	module Swagger
 
+		# Defines the Swagger spec file formats that are parsable by this gem.
+		# Currently only the JSON format is supported.
 		ALLOWED_FORMATS = [".json"].freeze
 
+		# Defines a base class from which Swagger API engines can be created.
+		# Uses namespace isolation to ensure routes don't conflict with any
+		# pre-existing routes from the main rails application.
 		class Engine < Rails::Engine
 			isolate_namespace Rails::Swagger
 		end
 
-		# Creates a new engine using the provided swagger file
+		# Helper method to create a new engine based on a module namespace
+		# prefix and Swagger spec file. The engine ceated will be a subclass of
+		# Rails::Swagger::Engine, which itself inherits from Rails::Engine.
 		def self.Engine base_module, file
 
-			# Convert to a constant if a string was passed
+			# Convert the module prefix into a constant if passed in as a string
 			base_module = Object.const_get base_module if String === base_module
 
-			# Sanity check
+			# Ensure the Swagger spec file is in an acceptable format
 			ext = File.extname(file)
 			unless ALLOWED_FORMATS.include? ext
 				raise "Swagger files must end with #{ALLOWED_FORMATS.join(' or ')}. File given: #{file}"
 			end
 
-			# Read the file
-			contents = File.read file
-
-			# Parse the swagger document
-			document = nil
-			if ext == ".json"
-
-				require 'json'
+			# Attempt to read and parse the Swagger spec file
+			document = File.read file
+			case File.extname file
+			when ".json"
 				begin
-					document = JSON.parse contents
+					require 'json'
+					document = JSON.parse document
 				rescue JSON::ParserError
-					raise $!, "Problem parsing swagger file \"#{file}\": #{$!.message.lines.first.strip}", $@
+					raise $!, "Problem parsing swagger spec file \"#{file}\": #{$!.message.lines.first.strip}", $@
 				end
-
+			else
+				raise "Swagger files must end with #{ALLOWED_FORMATS.join(' or ')}. File given: #{file}"
 			end
 
-			# Verify the supported swagger versions
+			# Verify that the swagger version is supported
 			unless document["swagger"] == "2.0"
-				raise "Unsupported swagger version: #{document["swagger"]}. Rails::Swagger supports only version 2.0"
+				raise "Unsupported swagger version: #{document["swagger"]}. #{self} supports only version 2.0"
 			end
 
-			# Build a routing tree
+			# Builds a routing tree based on the swagger spec file.
+			# We'll add each endpoint to the routing tree and additionally
+			# store it in an array to be used below.
 			router = Router.new
 			endpoints = []
 			document["paths"].each do |url, actions|
 				actions.each do |verb, schema|
 					route = Endpoint.new(verb.downcase.to_sym, url, schema)
-					endpoints << route
 					router << route
+					endpoints << route
 				end
 			end
 
-			# Instantiate a new rails engine
+			# Creates the engine that will be used to actually route the
+			# contents of the swagger spec file. The engine will eventually be
+			# attached to the base module (argument to this current method).
+			#
+			# Exposes `::router` and `::endpoints` methods to allow other parts
+			# of the code to tie requests back to their spec file definitions.
 			engine = Class.new Engine do
 
 				@router = router
@@ -66,7 +78,9 @@ module Rails
 					end
 				end
 
-				# Draw the routes
+				# Adds routes to the engine by passing the Mapper to the top
+				# of the routing tree. `self` inside the block refers to an
+				# instance of `ActionDispatch::Routing::Mapper`.
 				self.routes.draw do
 					scope module: base_module.name.underscore, format: false do
 						router.draw self
@@ -74,16 +88,24 @@ module Rails
 				end
 
 			end
+
+			# Assign the engine as a class on the base module
 			base_module.const_set :Engine, engine
 
-			# Map the routes
+			# Creates a hash that maps routes back to their swagger spec file
+			# equivalents. This is accomplished by mocking a request for each
+			# swagger spec file endpoint and determining which controller and
+			# action the request is routed to. Swagger spec file definitions
+			# are then attached to that controller/action pair.
 			endpoints.each do |route|
 
-				# Mock a request using this route's URL
-				url = route.path
-				req = ::ActionDispatch::Request.new ::Rack::MockRequest.env_for(::ActionDispatch::Journey::Router::Utils.normalize_path(url), method: route[:method].upcase)
+				# Mocks a request using the route's URL
+				url = ::ActionDispatch::Journey::Router::Utils.normalize_path route.path
+				env = ::Rack::MockRequest.env_for url, method: route[:method].upcase
+				req = ::ActionDispatch::Request.new env
 
-				# Store the route where it lands
+				# Maps the swagger spec endpoint to the destination controller
+				# action by routing the request.
 				mapped = engine.routes.router.recognize(req){}.first[1]
 				key = "#{mapped[:controller]}##{mapped[:action]}"
 				engine.endpoints[key] = route
@@ -91,16 +113,24 @@ module Rails
 			end
 			engine.endpoints.freeze
 
-			# Define a controller method
+			# Defines a helper method on the base module that can be used to
+			# properly generate swagger-aware controllers. Any controllers
+			# referenced from a swagger spec file should extend from a class
+			# generated by this method.
+			#
+			# Accepts a class (`ApplicationController`, etc.) that will be
+			# extended from upstream.
 			def base_module.Controller base_class
 				base = self
 				Class.new base_class do
 					include Controller
-					define_method :rails_swagger_engine { base.const_get :Engine }
+					define_method :rails_swagger_engine do
+						base.const_get :Engine
+					end
 				end
 			end
 
-			# Return it
+			# Returns the new engine
 			base_module.const_get :Engine
 
 		end
