@@ -98,7 +98,6 @@ module Rails
 						actions += subroute.endpoints.map{ |route| subroute.action_for route }.select{ |action| Symbol === action }
 					end
 
-					#puts "#{indent}resources :#{endpoint}, only: #{actions.inspect}"
 					map.resources @prefix.last.to_sym, only: actions do
 						draw_actions! map
 						draw_subroutes! map
@@ -108,7 +107,6 @@ module Rails
 					if @prefix.join("/").blank?
 						draw_subroutes! map
 					else
-						#puts "#{indent}namespace :#{endpoint}"
 						map.namespace @prefix.last do
 							draw_subroutes! map
 						end
@@ -161,7 +159,7 @@ module Rails
 					# These are handled in the resource
 					next if Symbol === params[:action]
 
-					#puts "#{indent}match #{endpoint}, #{params}.inspect"
+					# Add this individual route
 					map.match endpoint, params
 
 				end

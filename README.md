@@ -41,17 +41,15 @@ Verify that your routes are loaded...
 $ rake routes
 ```
 
-And ensure that your controllers extend from one that `rails-swagger` generates for you:
+And ensure that your controllers include the module that `rails-swagger` generates for you:
 
 ```ruby
-class PetStore::PetsController < PetStore::Controller ApplicationController
-  # Inherits from PetStore::Controller < ApplicationController
+class PetStore::PetsController < ApplicationController
+  include PetStore::SwaggerController
 end
 
-class OtherController < ApplicationController; end
-
-class Api::V1::ExampleController < Api::V1::Controller OtherController
-  # Inherits from Api::V1::Controller < OtherController < ApplicationController
+class Api::V1::Nested::ExampleController < ApplicationController
+  include Api::V1::SwaggerController
 end
 ```
 
@@ -59,23 +57,19 @@ end
 
 #### Syntactic Sugar
 
-Unless you've used something like [Sequel](https://github.com/jeremyevans/sequel) before, the syntactic sugar of how controllers are defined may look strange at first glance.
+Unless you've used something like [Sequel](https://github.com/jeremyevans/sequel) before, the syntactic sugar of how engines are defined may look strange at first glance.
 
-Under the hood, those controllers are extending from an anonymous class that is created and returned from a *method call*. `API::V1::Controller` is not a class, but simply a method that returns one. The `IntermediateController` is the first positional argument.
-
-This is accomplished by defining a method named `Controller` directly on the module object provided as the first argument to `Rails::Swagger::Engine`.
+Under the hood, those engines are actually created via a *method call* that returns a newly-created subclass. `Rails::Swagger:Engine` is not a class, but simply a method that returns one.
 
 #### Rails::Swagger#Engine
 
-A method that takes two arguments. The first represents the namespace that will be used to prefix everything related to this engine. This includes any controllers used by the engine, the `#Controller` helper method, and the engine itself.
+A method that takes two arguments. The first represents the namespace that will be used to prefix everything related to this engine. This includes any controllers used by the engine, the `SwaggerController` helper module, and the engine itself.
 
 The second argument is the path to the swagger spec file to route from. This gem utilizes RESTful routing conventions and assumes your controllers / actions will be named accordingly.
 
-#### _YourModulePrefix_#Controller
+#### _YourModulePrefix_#SwaggerController
 
-This is a method that is defined when `Rails::Swagger#Engine` is invoked. Pass it the class that you would like your controller to transparently inherit from, and it will generate an intermediate class that includes all of the `rails-swagger` functionality.
-
-Please note that these intermediate classes are tailored to each swagger spec file that is mounted. Without this, `rails-swagger` can not automatically validate request parameters.
+A module that is defined when `Rails::Swagger#Engine` is invoked. It should be included in every controller that handles routes managed by `rails-swagger`. Please note that an instance of this module is created for every swagger spec file that is mounted.
 
 ## Contributing
 

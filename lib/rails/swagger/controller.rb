@@ -15,7 +15,7 @@ module Rails
 				def validate_swagger_params
 					key = "#{params[:controller]}##{params[:action]}"
 					endpoint = rails_swagger_engine.endpoints[key]
-					puts endpoint.inspect
+					puts endpoint.inspect.white
 				end
 
 			end
