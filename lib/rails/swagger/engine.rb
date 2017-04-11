@@ -51,8 +51,8 @@ module Rails
 			router = Router.new
 			endpoints = []
 			document["paths"].each do |url, actions|
-				actions.each do |verb, schema|
-					route = Endpoint.new(verb.downcase.to_sym, url, schema)
+				actions.each do |verb, definition|
+					route = Endpoint.new(verb.downcase.to_sym, url, definition)
 					router << route
 					endpoints << route
 				end

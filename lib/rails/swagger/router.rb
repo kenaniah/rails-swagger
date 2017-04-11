@@ -1,7 +1,7 @@
 module Rails
 	module Swagger
 
-		Endpoint = Struct.new(:method, :url, :schema, :_path) do
+		Endpoint = Struct.new(:method, :url, :definition, :_path) do
 			def initialize *opts
 				super
 				self[:_path] = self.path

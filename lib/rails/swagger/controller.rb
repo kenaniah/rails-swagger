@@ -10,12 +10,17 @@ module Rails
 					before_action :validate_swagger_params
 				end
 
+				# Returns the swagger spec definition for the endpoint serving
+				# the current request.
+				def swagger_endpoint
+					key = "#{params[:controller]}##{params[:action]}"
+					endpoint = rails_swagger_engine.endpoints[key]
+				end
+
 				# Validates request parameters against the Swagger API spec
 				# associated with this controller.
 				def validate_swagger_params
-					key = "#{params[:controller]}##{params[:action]}"
-					endpoint = rails_swagger_engine.endpoints[key]
-					puts endpoint.inspect.white
+					puts swagger_endpoint.inspect.white
 				end
 
 			end
