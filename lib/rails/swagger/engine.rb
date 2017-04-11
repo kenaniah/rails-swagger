@@ -42,11 +42,12 @@ module Rails
 
 			# Build a routing tree
 			router = Router.new
+			routes = []
 			document["paths"].each do |url, actions|
 				actions.each do |verb, definition|
-					url = url.gsub /\{(.+)\}/, ':\\1'
-					#puts "#{verb.upcase} #{url}".cyan
-					router << Route.new(verb.downcase.to_sym, url, definition)
+					route = Route.new(verb.downcase.to_sym, url.gsub(/\{(.+)\}/, ':\\1'), url, definition)
+					routes << route
+					router << route
 				end
 			end
 
@@ -54,24 +55,53 @@ module Rails
 			engine = Class.new Engine do
 
 				@router = router
+				@definitions = Hash.new
+
 				class << self
 					def router
 						@router
+					end
+					def definitions
+						@definitions
 					end
 				end
 
 				# Draw the routes
 				self.routes.draw do
-					scope module: base_module.name.underscore do
+					scope module: base_module.name.underscore, format: false do
 						router.draw self
 					end
 				end
 
 			end
-			base_module.const_set :SwaggerEngine, engine
+			base_module.const_set :Engine, engine
+
+			# Map the routes
+			routes.each do |route|
+
+				# Mock a request using this route's URL
+				url = route[:url].gsub(/\{(.+)\}/, ':\\1')
+				req = ::ActionDispatch::Request.new ::Rack::MockRequest.env_for(::ActionDispatch::Journey::Router::Utils.normalize_path(url), method: route[:method].upcase)
+
+				# Store the route where it lands
+				mapped = engine.routes.router.recognize(req){}.first[1]
+				key = "#{mapped[:controller]}##{mapped[:action]}"
+				engine.definitions[key] = route
+
+			end
+			engine.definitions.freeze
+
+			# Define a controller method
+			def base_module.Controller base_class
+				base = self
+				Class.new base_class do
+					include Controller
+					define_method :rails_swagger_engine { base.const_get :Engine }
+				end
+			end
 
 			# Return it
-			base_module.const_get :SwaggerEngine
+			base_module.const_get :Engine
 
 		end
 

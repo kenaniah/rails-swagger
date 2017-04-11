@@ -1,7 +1,7 @@
 module Rails
 	module Swagger
 
-		Route = Struct.new(:method, :path, :schema)
+		Route = Struct.new(:method, :path, :url, :schema)
 
 		RESOURCE_ROUTES = {
 			get: :index,
