@@ -8,8 +8,8 @@ module Rails
 				end
 
 				def validate_swagger_params
-					swagger = rails_swagger_engine.definitions["#{params[:controller]}##{params[:action]}"]
-					puts swagger.inspect
+					endpoint = rails_swagger_engine.endpoints["#{params[:controller]}##{params[:action]}"]
+					puts endpoint.inspect
 				end
 
 			end

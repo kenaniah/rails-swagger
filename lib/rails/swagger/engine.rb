@@ -42,11 +42,11 @@ module Rails
 
 			# Build a routing tree
 			router = Router.new
-			routes = []
+			endpoints = []
 			document["paths"].each do |url, actions|
-				actions.each do |verb, definition|
-					route = Route.new(verb.downcase.to_sym, url.gsub(/\{(.+)\}/, ':\\1'), url, definition)
-					routes << route
+				actions.each do |verb, schema|
+					route = Endpoint.new(verb.downcase.to_sym, url, schema)
+					endpoints << route
 					router << route
 				end
 			end
@@ -55,14 +55,14 @@ module Rails
 			engine = Class.new Engine do
 
 				@router = router
-				@definitions = Hash.new
+				@endpoints = Hash.new
 
 				class << self
 					def router
 						@router
 					end
-					def definitions
-						@definitions
+					def endpoints
+						@endpoints
 					end
 				end
 
@@ -77,19 +77,19 @@ module Rails
 			base_module.const_set :Engine, engine
 
 			# Map the routes
-			routes.each do |route|
+			endpoints.each do |route|
 
 				# Mock a request using this route's URL
-				url = route[:url].gsub(/\{(.+)\}/, ':\\1')
+				url = route.path
 				req = ::ActionDispatch::Request.new ::Rack::MockRequest.env_for(::ActionDispatch::Journey::Router::Utils.normalize_path(url), method: route[:method].upcase)
 
 				# Store the route where it lands
 				mapped = engine.routes.router.recognize(req){}.first[1]
 				key = "#{mapped[:controller]}##{mapped[:action]}"
-				engine.definitions[key] = route
+				engine.endpoints[key] = route
 
 			end
-			engine.definitions.freeze
+			engine.endpoints.freeze
 
 			# Define a controller method
 			def base_module.Controller base_class

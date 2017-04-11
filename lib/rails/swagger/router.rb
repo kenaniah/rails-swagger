@@ -1,13 +1,21 @@
 module Rails
 	module Swagger
 
-		Route = Struct.new(:method, :path, :url, :schema)
+		Endpoint = Struct.new(:method, :url, :schema, :_path) do
+			def initialize *opts
+				super
+				self[:_path] = self.path
+			end
+			def path
+				self[:url].gsub /\{(.+)\}/, ':\\1'
+			end
+		end
 
 		RESOURCE_ROUTES = {
 			get: :index,
 			post: :create
 		}.freeze
-		VARIATE_ROUTES = {
+		PARAM_ROUTES = {
 			get: :show,
 			patch: :update,
 			put: :update,
@@ -16,32 +24,32 @@ module Rails
 
 		class Router
 
-			attr_accessor :routes
+			attr_accessor :endpoints
 
 			def initialize prefix = []
 				@prefix = prefix
-				@routes = []
-				@subpaths = Hash.new do |hash, k|
+				@endpoints = []
+				@subroutes = Hash.new do |hash, k|
 					hash[k] = Router.new(@prefix + [k])
 				end
 			end
 
-			# Adds an individual route to the routing tree
+			# Adds an individual endpoint to the routing tree
 			def << route
-				raise "Argument must be a Route" unless Route === route
-				base, *subpath = route[:path].split '/' # Split out first element
-				if subpath.count == 0
-					route[:path] = ""
-					@routes << route
+				raise "Argument must be an Endpoint" unless Endpoint === route
+				base, *subroute = route[:_path].split '/' # Split out first element
+				if subroute.count == 0
+					route[:_path] = ""
+					@endpoints << route
 				else
-					route[:path] = subpath.join '/'
-					self[subpath[0]] << route
+					route[:_path] = subroute.join '/'
+					self[subroute[0]] << route
 				end
 			end
 
 			# Returns a specific branch of the routing tree
 			def [] path
-				@subpaths[path]
+				@subroutes[path]
 			end
 
 			# Returns the routing path
@@ -50,10 +58,10 @@ module Rails
 			end
 
 			# Returns the mode used for collecting routes
-			def path_mode
+			def route_mode
 				mode = :resource
-				mode = :namespace if @routes.count == 0
-				mode = :action if @subpaths.count == 0 && @prefix.count > 1
+				mode = :namespace if @endpoints.count == 0
+				mode = :action if @subroutes.count == 0 && @prefix.count > 1
 				mode
 			end
 
@@ -70,40 +78,38 @@ module Rails
 
 			# Determines the action for a specific route
 			def action_for route
-				raise "Argument must be a Route" unless Route === route
+				raise "Argument must be an Endpoint" unless Endpoint === route
 				action = @prefix[-1]
-				action = VARIATE_ROUTES[route[:method]] if self.action_mode == :param
-				action = RESOURCE_ROUTES[route[:method]] if self.path_mode == :resource && self.action_mode == :collection
+				action = PARAM_ROUTES[route[:method]] if self.action_mode == :param
+				action = RESOURCE_ROUTES[route[:method]] if self.route_mode == :resource && self.action_mode == :collection
 				action
 			end
 
 			# Draws the routes for this router
 			def draw map
-				path = @prefix.join "/"
-				endpoint = @prefix.last
-				indent = "\t" * @prefix.count
-				case self.path_mode
+				case self.route_mode
 				when :resource
 
 					# Find collection-level resource actions
-					actions = @routes.map{ |route| self.action_for route }.select{ |action| Symbol === action }
+					actions = @endpoints.map{ |route| self.action_for route }.select{ |action| Symbol === action }
 
 					# Find parameter-level resource actions
-					@subpaths.select{ |k, subpath| /^:/ === k}.values.each do |subpath|
-						actions += subpath.routes.map{ |route| subpath.action_for route }.select{ |action| Symbol === action }
+					@subroutes.select{ |k, subroute| /^:/ === k}.values.each do |subroute|
+						actions += subroute.endpoints.map{ |route| subroute.action_for route }.select{ |action| Symbol === action }
 					end
 
 					#puts "#{indent}resources :#{endpoint}, only: #{actions.inspect}"
-					map.resources endpoint.to_sym, only: actions do
+					map.resources @prefix.last.to_sym, only: actions do
 						draw_actions! map
 						draw_subroutes! map
 					end
+
 				when :namespace
-					if path.blank?
+					if @prefix.join("/").blank?
 						draw_subroutes! map
 					else
 						#puts "#{indent}namespace :#{endpoint}"
-						map.namespace endpoint do
+						map.namespace @prefix.last do
 							draw_subroutes! map
 						end
 					end
@@ -115,11 +121,11 @@ module Rails
 
 			def routing_tree
 
-				puts self.path + " - #{self.path_mode}"
-				@routes.each do |route|
+				puts self.path + " - #{self.route_mode}"
+				@endpoints.each do |route|
 					puts "\t#{route[:method].to_s.upcase} to ##{self.action_for route} (#{self.action_mode})"
 				end
-				@subpaths.each do |k, subpath| subpath.routing_tree end
+				@subroutes.each do |k, subroute| subroute.routing_tree end
 
 			end
 
@@ -129,11 +135,11 @@ module Rails
 				output = ""
 
 				path = "/" + @prefix.join('/')
-				@routes.each do |route|
+				@endpoints.each do |route|
 					output += "#{route[:method].to_s.upcase} #{path}\n"
 				end
-				@subpaths.each do |k, subpath|
-					output += subpath.to_s
+				@subroutes.each do |k, subroute|
+					output += subroute.to_s
 				end
 
 				output
@@ -145,7 +151,7 @@ module Rails
 			def draw_actions! map
 				indent = "\t" * @prefix.count
 				endpoint = @prefix.last
-				@routes.each do |route|
+				@endpoints.each do |route|
 
 					params = Hash.new
 					params[:via] = route[:method]
@@ -162,8 +168,8 @@ module Rails
 			end
 
 			def draw_subroutes! map
-				@subpaths.values.each do |subpath|
-					subpath.draw map
+				@subroutes.values.each do |subroute|
+					subroute.draw map
 				end
 			end
 
