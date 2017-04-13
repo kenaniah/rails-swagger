@@ -20,7 +20,7 @@ module Rails
 				# Validates request parameters against the Swagger API spec
 				# associated with this controller.
 				def validate_swagger_params
-					puts swagger_endpoint.inspect.white
+					#puts swagger_endpoint.inspect.white
 				end
 
 			end

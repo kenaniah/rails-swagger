@@ -45,6 +45,14 @@ module Rails
 				raise "Unsupported swagger version: #{document["swagger"]}. #{self} supports only version 2.0"
 			end
 
+			# # Parse the swagger schema
+			# schema = nil
+			# begin
+			# 	schema = JSchema.build document
+			# rescue JSchema::UnknownError, JSchema::InvalidSchema => e
+			# 	raise $!, "Problem parsing swagger spec file \"#{file}\": #{e.message}", $@
+			# end
+
 			# Builds a routing tree based on the swagger spec file.
 			# We'll add each endpoint to the routing tree and additionally
 			# store it in an array to be used below.
@@ -68,6 +76,7 @@ module Rails
 
 				@router = router
 				@endpoints = Hash.new
+				@schema = document
 
 				class << self
 					def router
@@ -75,6 +84,9 @@ module Rails
 					end
 					def endpoints
 						@endpoints
+					end
+					def schema
+						@schema
 					end
 				end
 

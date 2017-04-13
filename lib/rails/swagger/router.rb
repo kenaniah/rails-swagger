@@ -26,11 +26,12 @@ module Rails
 
 			attr_accessor :endpoints
 
-			def initialize prefix = []
+			def initialize prefix = [], parent = nil
+				@parent = parent
 				@prefix = prefix
 				@endpoints = []
 				@subroutes = Hash.new do |hash, k|
-					hash[k] = Router.new(@prefix + [k])
+					hash[k] = Router.new(@prefix + [k], self)
 				end
 			end
 
@@ -61,7 +62,7 @@ module Rails
 			def route_mode
 				mode = :resource
 				mode = :namespace if @endpoints.count == 0
-				mode = :action if @subroutes.count == 0 && @prefix.count > 1
+				mode = :action if @subroutes.count == 0 && @parent && @parent.route_mode == :resource
 				mode
 			end
 
