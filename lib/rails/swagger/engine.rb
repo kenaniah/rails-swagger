@@ -95,6 +95,9 @@ module Rails
 				# instance of `ActionDispatch::Routing::Mapper`.
 				self.routes.draw do
 					scope module: base_module.name.underscore, format: false do
+						get "swagger.json", to: -> (env) do
+							[200, {"Content-Type" => "application/json"}, [engine.schema.to_json]]
+						end
 						router.draw self
 					end
 				end
