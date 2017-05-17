@@ -140,7 +140,7 @@ module Rails
 				def self.included controller
 					base_module = @base
 					controller.include Controller
-					define_method :rails_swagger_engine do
+					define_method :swagger_engine do
 						base_module.const_get :Engine
 					end
 				end
