@@ -128,17 +128,7 @@ module Rails
 
 			end
 
-			def routing_tree
-
-				puts self.path + " - #{self.route_mode}"
-				@endpoints.each do |route|
-					puts "\t#{route[:method].to_s.upcase} to ##{self.action_for route} (#{self.action_mode})"
-				end
-				@subroutes.each do |k, subroute| subroute.routing_tree end
-
-			end
-
-			# Outputs the routing tree in text format
+			# Returns the routing tree in text format
 			def to_s
 
 				output = ""
@@ -152,6 +142,17 @@ module Rails
 				end
 
 				output
+
+			end
+
+			# Outputs a visual representation of the routing tree
+			def _debug_routing_tree
+
+				puts self.path + " - #{self.route_mode}"
+				@endpoints.each do |route|
+					puts "\t#{route[:method].to_s.upcase} to ##{self.action_for route} (#{self.action_mode})"
+				end
+				@subroutes.each do |k, subroute| subroute._debug_routing_tree end
 
 			end
 

@@ -45,14 +45,6 @@ module Rails
 				raise "Unsupported swagger version: #{document["swagger"]}. #{self} supports only version 2.0"
 			end
 
-			# # Parse the swagger schema
-			# schema = nil
-			# begin
-			# 	schema = JSchema.build document
-			# rescue JSchema::UnknownError, JSchema::InvalidSchema => e
-			# 	raise $!, "Problem parsing swagger spec file \"#{file}\": #{e.message}", $@
-			# end
-
 			# Builds a routing tree based on the swagger spec file.
 			# We'll add each endpoint to the routing tree and additionally
 			# store it in an array to be used below.
@@ -90,13 +82,17 @@ module Rails
 					end
 				end
 
-				# Static rack app with friendly name
-				app = Class.new do
+				# Rack app for serving the original swagger file
+				swagger_app = Class.new do
 					def inspect
 						"Rails::Swagger::Engine"
 					end
 					define_method :call do |env|
-						[200, {"Content-Type" => "application/json"}, [engine.schema.to_json]]
+						[
+							200,
+							{"Content-Type" => "application/json"},
+							[engine.schema.to_json]
+						]
 					end
 				end
 
@@ -105,7 +101,7 @@ module Rails
 				# instance of `ActionDispatch::Routing::Mapper`.
 				self.routes.draw do
 					scope module: base_module.name.underscore, format: false do
-						get "swagger.json", to: app.new
+						get "swagger.json", to: swagger_app.new
 						router.draw self
 					end
 				end
