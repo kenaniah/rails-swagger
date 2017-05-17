@@ -1,16 +1,19 @@
 module Rails
 	module Swagger
 
+		# Internally represents individual routes
 		Endpoint = Struct.new(:method, :url, :definition, :_path) do
 			def initialize *opts
 				super
 				self[:_path] = self.path
 			end
+			# Translates path params from {bracket} syntax to :symbol syntax
 			def path
 				self[:url].gsub /\{(.+)\}/, ':\\1'
 			end
 		end
 
+		# Defines RESTful routing conventions
 		RESOURCE_ROUTES = {
 			get: :index,
 			post: :create
@@ -28,7 +31,7 @@ module Rails
 
 			def initialize prefix = [], parent = nil
 				@parent = parent
-				@prefix = prefix
+				@prefix = prefix.freeze
 				@endpoints = []
 				@subroutes = Hash.new do |hash, k|
 					hash[k] = Router.new(@prefix + [k], self)
@@ -92,19 +95,22 @@ module Rails
 				when :resource
 
 					# Find collection-level resource actions
-					actions = @endpoints.map{ |route| self.action_for route }.select{ |action| Symbol === action }
+					actions = @endpoints.map{ |r| self.action_for r }.select{ |a| Symbol === a }
 
 					# Find parameter-level resource actions
-					@subroutes.select{ |k, subroute| /^:/ === k}.values.each do |subroute|
-						actions += subroute.endpoints.map{ |route| subroute.action_for route }.select{ |action| Symbol === action }
+					@subroutes.select{ |k, _| /^:/ === k }.values.each do |subroute|
+						actions += subroute.endpoints.map{ |r| subroute.action_for r }.select{ |a| Symbol === a }
 					end
 
+					# Draw a resource
 					map.resources @prefix.last.to_sym, only: actions do
 						draw_actions! map
 						draw_subroutes! map
 					end
 
 				when :namespace
+
+					# Draw a namespace (unless at the top)
 					if @prefix.join("/").blank?
 						draw_subroutes! map
 					else
@@ -112,8 +118,12 @@ module Rails
 							draw_subroutes! map
 						end
 					end
+
 				when :action
+
+					# Draw actions directly
 					draw_actions! map
+
 				end
 
 			end
@@ -148,10 +158,10 @@ module Rails
 		protected
 
 			def draw_actions! map
-				indent = "\t" * @prefix.count
-				endpoint = @prefix.last
+
 				@endpoints.each do |route|
 
+					# Params hash for the route to be added
 					params = Hash.new
 					params[:via] = route[:method]
 					params[:on] = self.action_mode unless self.action_mode == :param
@@ -161,15 +171,14 @@ module Rails
 					next if Symbol === params[:action]
 
 					# Add this individual route
-					map.match endpoint, params
+					map.match @prefix.last, params
 
 				end
+
 			end
 
 			def draw_subroutes! map
-				@subroutes.values.each do |subroute|
-					subroute.draw map
-				end
+				@subroutes.values.each { |r| r.draw map }
 			end
 
 		end
