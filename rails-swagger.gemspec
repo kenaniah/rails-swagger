@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |s|
   s.name          = "rails-swagger"
-  s.version       = "0.0.2"
+  s.version       = "0.1.0"
   s.authors       = ["Kenaniah Cerny"]
   s.email         = ["kenaniah@gmail.com"]
 
@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
   s.add_dependency "jschema"
 
   s.add_development_dependency "bundler"
-  s.add_development_dependency "rails"
+  s.add_development_dependency "rails", "~>5.1"
   s.add_development_dependency "rake"
+  s.add_development_dependency "sqlite3"
 end
