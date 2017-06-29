@@ -9,7 +9,7 @@ module Rails
 			end
 			# Translates path params from {bracket} syntax to :symbol syntax
 			def path
-				self[:url].gsub /\{(.+)\}/, ':\\1'
+				self[:url].gsub(/\{(.+)\}/, ':\\1')
 			end
 		end
 
@@ -41,7 +41,7 @@ module Rails
 			# Adds an individual endpoint to the routing tree
 			def << route
 				raise "Argument must be an Endpoint" unless Endpoint === route
-				base, *subroute = route[:_path].split '/' # Split out first element
+				_base, *subroute = route[:_path].split '/' # Split out first element
 				if subroute.count == 0
 					route[:_path] = ""
 					@endpoints << route

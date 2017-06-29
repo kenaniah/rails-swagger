@@ -20,7 +20,7 @@ module Rails
 				# the current request.
 				def swagger_endpoint
 					key = "#{params[:controller]}##{params[:action]}"
-					endpoint = swagger_engine.endpoints[key]
+					swagger_engine.endpoints[key]
 				end
 
 				# Validates request parameters against the Swagger API spec
