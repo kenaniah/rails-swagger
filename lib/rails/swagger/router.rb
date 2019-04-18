@@ -10,7 +10,7 @@ module Rails
       end
       # Translates path params from {bracket} syntax to :symbol syntax
       def path
-        self[:url].gsub(/\{(.+)\}/, ':\\1')
+        self[:url].gsub(/\{([^}]+)\}/, ':\\1')
       end
     end
 
@@ -67,14 +67,13 @@ module Rails
         mode = :resource
         mode = :namespace if @endpoints.count == 0
         mode = :action if @subroutes.count == 0 && @parent && @parent.route_mode == :resource
+        mode = :param if /^:/ === @prefix.last
         mode
       end
 
       # Returns the mode used for actions in this router
       def action_mode
-        if /^:/ === @prefix[-2]
-          :member
-        elsif /^:/ === @prefix[-1]
+        if /^:/ === @prefix[-1]
           :param
         else
           :collection
@@ -92,6 +91,7 @@ module Rails
 
       # Draws the routes for this router
       def draw map
+
         case self.route_mode
         when :resource
 
@@ -119,6 +119,11 @@ module Rails
               draw_subroutes! map
             end
           end
+
+        when :param
+
+          # Draw subroutes directly
+          draw_subroutes! map
 
         when :action
 
