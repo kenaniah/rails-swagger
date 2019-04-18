@@ -1,39 +1,43 @@
 module Rails
-	module Swagger
-		module Controller
 
-			# METHODS_WITH_BODIES = [
-			# 	:post,
-			# 	:patch,
-			# 	:put
-			# ].freeze
+  module Swagger
 
-			# Injects swagger-related code into the controller when included
-			def self.included base
+    module Controller
 
-				# Add controller hooks
-				# base.class_eval do
-				# 	before_action :swagger_validate_params
-				# end
+      # METHODS_WITH_BODIES = [
+      #   :post,
+      #   :patch,
+      #   :put
+      # ].freeze
 
-				# Returns the swagger spec definition for the endpoint serving
-				# the current request.
-				def swagger_endpoint
-					key = "#{params[:controller]}##{params[:action]}"
-					swagger_engine.endpoints[key]
-				end
+      # Injects swagger-related code into the controller when included
+      def self.included base
 
-				# Validates request parameters against the Swagger API spec
-				# associated with this controller.
-				# def swagger_validate_params
-				# 	if METHODS_WITH_BODIES.include? request.method_symbol
-				# 		body = request.POST
-				# 		# TODO: add validation here
-				# 	end
-				# end
+        # Add controller hooks
+        # base.class_eval do
+        #   before_action :swagger_validate_params
+        # end
 
-			end
+        # Returns the swagger spec definition for the endpoint serving
+        # the current request.
+        def swagger_endpoint
+          key = "#{params[:controller]}##{params[:action]}"
+          swagger_engine.endpoints[key]
+        end
 
-		end
-	end
+        # Validates request parameters against the Swagger API spec
+        # associated with this controller.
+        # def swagger_validate_params
+        #   if METHODS_WITH_BODIES.include? request.method_symbol
+        #     body = request.POST
+        #     # TODO: add validation here
+        #   end
+        # end
+
+      end
+
+    end
+
+  end
+
 end

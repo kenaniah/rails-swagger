@@ -3,6 +3,6 @@ require "rails/swagger/router"
 require "rails/swagger/engine"
 
 module Rails
-	module Swagger
-	end
+  module Swagger
+  end
 end
