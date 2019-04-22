@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |s|
   s.name          = "rails-swagger"
-  s.version       = "0.2.0"
+  s.version       = "0.3.0"
   s.authors       = ["Kenaniah Cerny"]
   s.email         = ["kenaniah@gmail.com"]
 

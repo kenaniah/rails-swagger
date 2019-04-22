@@ -124,6 +124,7 @@ module Rails
 
           # Draw subroutes directly
           draw_subroutes! map
+          draw_actions! map
 
         when :action
 
