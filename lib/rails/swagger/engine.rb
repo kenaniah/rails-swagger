@@ -84,25 +84,25 @@ module Rails
         end
 
         # Rack app for serving the original swagger file
-        swagger_app = Class.new do
-          def inspect
-            "Rails::Swagger::Engine"
-          end
-          define_method :call do |env|
-            [
-              200,
-              {"Content-Type" => "application/json"},
-              [engine.schema.to_json]
-            ]
-          end
-        end
+        # swagger_app = Class.new do
+        #   def inspect
+        #     "Rails::Swagger::Engine"
+        #   end
+        #   define_method :call do |env|
+        #     [
+        #       200,
+        #       {"Content-Type" => "application/json"},
+        #       [engine.schema.to_json]
+        #     ]
+        #   end
+        # end
 
         # Adds routes to the engine by passing the Mapper to the top
         # of the routing tree. `self` inside the block refers to an
         # instance of `ActionDispatch::Routing::Mapper`.
         self.routes.draw do
           scope module: base_module.name.underscore, format: false do
-            get "swagger.json", to: swagger_app.new
+            # get "swagger.json", to: swagger_app.new
             router.draw self
           end
         end
